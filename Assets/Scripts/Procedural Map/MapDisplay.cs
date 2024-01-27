@@ -8,6 +8,7 @@ namespace Procedural_Map
         public Renderer textureRenderer;
         public MeshFilter meshFilter;
         public MeshRenderer meshRenderer;
+
         private void Awake()
         {
             textureRenderer = GetComponent<Renderer>();
@@ -24,10 +25,6 @@ namespace Procedural_Map
         {
             meshFilter.sharedMesh = meshData.CreateMesh();
             meshRenderer.sharedMaterial.mainTexture = texture2D;
-
-
-
-
         }
     }
 }
