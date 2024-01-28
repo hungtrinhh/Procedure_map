@@ -11,11 +11,17 @@ namespace Procedural_Map
         public static Vector2 viewerPosition;
         int chunkSize;
         int chunkVisibleInViewDistances;
+        public Transform parentChunk;
+
+        static MapGenerator mapGenerator;
+
 
         Dictionary<Vector2, TerrainChunk> terrainChunksDictionary = new();
+        List<TerrainChunk> terrainChunksVisibleLastUpdate = new();
 
         void Start()
         {
+            mapGenerator = FindObjectOfType<MapGenerator>();
             chunkSize = MapGenerator.mapChunkSize - 1;
             chunkVisibleInViewDistances = Mathf.RoundToInt(maxViewDis / chunkSize);
         }
@@ -28,6 +34,14 @@ namespace Procedural_Map
 
         void UpdateVisibleChunk()
         {
+            for (int i = 0; i < terrainChunksVisibleLastUpdate.Count; i++)
+            {
+                terrainChunksVisibleLastUpdate[i].SetVisible(false);
+            }
+
+            terrainChunksVisibleLastUpdate.Clear();
+
+
             int currentChunkCoordX = Mathf.RoundToInt(viewerPosition.x / chunkSize);
             int currentChunkCoordY = Mathf.RoundToInt(viewerPosition.y / chunkSize);
 
@@ -41,10 +55,15 @@ namespace Procedural_Map
                     if (terrainChunksDictionary.ContainsKey(viewChunkCoord))
                     {
                         terrainChunksDictionary[viewChunkCoord].UpdateTerrainChunk();
+                        if (terrainChunksDictionary[viewChunkCoord].IsVisible())
+                        {
+                            terrainChunksVisibleLastUpdate.Add(terrainChunksDictionary[viewChunkCoord]);
+                        }
                     }
                     else
                     {
-                        terrainChunksDictionary.Add(viewChunkCoord, new TerrainChunk(viewChunkCoord, chunkSize));
+                        terrainChunksDictionary.Add(viewChunkCoord,
+                            new TerrainChunk(viewChunkCoord, chunkSize, parentChunk));
                     }
                 }
             }
@@ -55,16 +74,35 @@ namespace Procedural_Map
             Vector2 position;
             GameObject meshObject;
             Bounds bounds;
+            MeshRenderer meshRenderer;
+            MeshFilter meshFilter;
 
-            public TerrainChunk(Vector2 coord, int size)
+            public TerrainChunk(Vector2 coord, int size, Transform parent)
             {
                 position = coord * size;
-                Vector3 positionV3 = new Vector3(position.x,0, position.y);
+                Vector3 positionV3 = new Vector3(position.x, 0, position.y);
                 bounds = new Bounds(position, Vector2.one * size);
-                meshObject = GameObject.CreatePrimitive(PrimitiveType.Plane);
+
+                meshObject = new("Terrain Chunk");
+
+                meshRenderer = meshObject.AddComponent<MeshRenderer>();
+                meshFilter = meshObject.AddComponent<MeshFilter>();
 
                 meshObject.transform.position = positionV3;
-                meshObject.transform.localPosition = Vector3.one * size / 10f;
+                meshObject.transform.localScale = Vector3.one * size / 10f;
+                meshObject.transform.parent = parent;
+                SetVisible(false);
+                mapGenerator.RequestMapData(OnMapDataReceived);
+            }
+
+            void OnMapDataReceived(MapGenerator.MapData mapData)
+            {
+                print("Map data received");
+            }
+
+            void OnMeshDataReceived(MeshData meshData)
+            {
+                meshFilter.mesh = meshData.CreateMesh();
             }
 
             public void UpdateTerrainChunk()
@@ -77,6 +115,11 @@ namespace Procedural_Map
             public void SetVisible(bool visible)
             {
                 meshObject.SetActive(visible);
+            }
+
+            public bool IsVisible()
+            {
+                return meshObject.activeSelf;
             }
         }
     }
