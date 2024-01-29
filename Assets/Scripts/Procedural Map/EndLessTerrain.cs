@@ -7,10 +7,16 @@ namespace Procedural_Map
     public class EndLessTerrain : MonoBehaviour
     {
         public const float maxViewDis = 300;
+        public LODInfo[] detailLevel;
+
+
         public Transform viewer;
         public static Vector2 viewerPosition;
         int chunkSize;
         int chunkVisibleInViewDistances;
+
+        public Material mapMaterial;
+
         public Transform parentChunk;
 
         static MapGenerator mapGenerator;
@@ -63,7 +69,7 @@ namespace Procedural_Map
                     else
                     {
                         terrainChunksDictionary.Add(viewChunkCoord,
-                            new TerrainChunk(viewChunkCoord, chunkSize, parentChunk));
+                            new TerrainChunk(viewChunkCoord, chunkSize, parentChunk, mapMaterial));
                     }
                 }
             }
@@ -77,7 +83,7 @@ namespace Procedural_Map
             MeshRenderer meshRenderer;
             MeshFilter meshFilter;
 
-            public TerrainChunk(Vector2 coord, int size, Transform parent)
+            public TerrainChunk(Vector2 coord, int size, Transform parent, Material material)
             {
                 position = coord * size;
                 Vector3 positionV3 = new Vector3(position.x, 0, position.y);
@@ -87,17 +93,18 @@ namespace Procedural_Map
 
                 meshRenderer = meshObject.AddComponent<MeshRenderer>();
                 meshFilter = meshObject.AddComponent<MeshFilter>();
+                meshRenderer.material = material;
 
                 meshObject.transform.position = positionV3;
-                meshObject.transform.localScale = Vector3.one * size / 10f;
                 meshObject.transform.parent = parent;
                 SetVisible(false);
+                
                 mapGenerator.RequestMapData(OnMapDataReceived);
             }
 
             void OnMapDataReceived(MapGenerator.MapData mapData)
             {
-                print("Map data received");
+                // mapGenerator.RequestMeshData(mapData, OnMeshDataReceived);
             }
 
             void OnMeshDataReceived(MeshData meshData)
@@ -121,6 +128,38 @@ namespace Procedural_Map
             {
                 return meshObject.activeSelf;
             }
+        }
+
+        class LODMesh
+        {
+            public Mesh mesh;
+            public bool hasRequested;
+            public bool hasMesh;
+            int lod;
+
+            public LODMesh(int lod)
+            {
+                this.lod = lod;
+            }
+
+            void OnMeshDataReceive(MeshData meshData)
+            {
+                mesh = meshData.CreateMesh();
+                hasMesh = true;
+            }
+
+            public void RequestMesh(MapGenerator.MapData mapData)
+            {
+                hasRequested = true;
+                mapGenerator.RequestMeshData(mapData, lod, OnMeshDataReceive);
+            }
+        }
+
+        [Serializable]
+        public struct LODInfo
+        {
+            public int lod;
+            public float visibleDtsThreshold;
         }
     }
 }

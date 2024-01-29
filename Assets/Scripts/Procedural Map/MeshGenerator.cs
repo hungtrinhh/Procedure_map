@@ -7,6 +7,8 @@ namespace Procedural_Map
         public static MeshData GenerateTerrainMesh(float[,] heightMap, float heightMultiplier,
             AnimationCurve meshHeightCurve, int levelOfDetail)
         {
+            AnimationCurve heightCurve = new AnimationCurve(meshHeightCurve.keys);
+
             int width = heightMap.GetLength(0);
             int height = heightMap.GetLength(1);
             float topLeftX = (width - 1) / -2f;
@@ -26,7 +28,8 @@ namespace Procedural_Map
                 for (int x = 0; x < width; x += meshSimplificationIncrement)
                 {
                     meshData.vectices[vertexIndex] = new Vector3(topLeftX + x,
-                        meshHeightCurve.Evaluate(heightMap[x, y]) * heightMultiplier, topLeftZ - y);
+                        heightCurve.Evaluate(heightMap[x, y]) * heightMultiplier, topLeftZ - y);
+
                     meshData.uvs[vertexIndex] = new Vector2(x / (float)width, y: y / (float)height);
 
                     if (x < width - 1 && y < height - 1)

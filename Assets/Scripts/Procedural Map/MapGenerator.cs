@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using JetBrains.Annotations;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Procedural_Map
 {
@@ -17,7 +19,7 @@ namespace Procedural_Map
         public const int mapChunkSize = 241;
 
 
-        [Range(0, 6)] public int levelOfDetail;
+        [Range(0, 6)] public int EditorPreviewLevelOfDetail;
         [Space] public DrawMode drawMode = DrawMode.NoiseMap;
 
 
@@ -35,6 +37,7 @@ namespace Procedural_Map
         public TerrainType[] regions;
 
         private readonly Queue<MapThreadingInfo<MapData>> mapDataThreadingInfoQueue = new();
+        private readonly Queue<MapThreadingInfo<MeshData>> meshDataThreadingInfoQueue = new();
 
         private void OnValidate()
         {
@@ -43,8 +46,7 @@ namespace Procedural_Map
                 octaves = 0;
             }
         }
-        
-        
+
 
         public void DrawMapInEditor()
         {
@@ -63,7 +65,7 @@ namespace Procedural_Map
                 case DrawMode.Mesh:
                     display.DrawMesh(
                         MeshGenerator.GenerateTerrainMesh(mapData.heightMap, heightMultiplier, meshHeightCurve,
-                            levelOfDetail),
+                            EditorPreviewLevelOfDetail),
                         TextureGenerator.TextureFromColorMap(mapData.colorMap, mapChunkSize, mapChunkSize));
                     break;
             }
@@ -71,8 +73,12 @@ namespace Procedural_Map
 
         public void RequestMapData(Action<MapData> callBack)
         {
-            ThreadStart threadStart = delegate { MapDataThread(callBack); };
-            new Thread(threadStart).Start();
+            void ThreadStart()
+            {
+                MapDataThread(callBack);
+            }
+
+            new Thread(ThreadStart).Start();
         }
 
         void MapDataThread(Action<MapData> callBack)
@@ -84,6 +90,22 @@ namespace Procedural_Map
             }
         }
 
+        public void RequestMeshData(MapData mapData, int lod, Action<MeshData> callback)
+        {
+            new Thread(() => { MeshDataThread(mapData, lod, callback); }).Start();
+        }
+
+        void MeshDataThread(MapData mapData, int lod, Action<MeshData> callback)
+        {
+            MeshData meshData =
+                MeshGenerator.GenerateTerrainMesh(mapData.heightMap, heightMultiplier, meshHeightCurve,
+                    lod);
+            lock (meshDataThreadingInfoQueue)
+            {
+                meshDataThreadingInfoQueue.Enqueue(new MapThreadingInfo<MeshData>(callback, meshData));
+            }
+        }
+
         void Update()
         {
             if (mapDataThreadingInfoQueue.Count > 0)
@@ -91,6 +113,15 @@ namespace Procedural_Map
                 for (int i = 0; i < mapDataThreadingInfoQueue.Count; i++)
                 {
                     MapThreadingInfo<MapData> threadingInfo = mapDataThreadingInfoQueue.Dequeue();
+                    threadingInfo.callBack(threadingInfo.parameter);
+                }
+            }
+
+            if (meshDataThreadingInfoQueue.Count > 0)
+            {
+                for (int i = 0; i < meshDataThreadingInfoQueue.Count; i++)
+                {
+                    MapThreadingInfo<MeshData> threadingInfo = meshDataThreadingInfoQueue.Dequeue();
                     threadingInfo.callBack(threadingInfo.parameter);
                 }
             }
