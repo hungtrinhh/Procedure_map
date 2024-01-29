@@ -1,16 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
-using JetBrains.Annotations;
 using UnityEngine;
-using UnityEngine.Serialization;
 
-namespace Procedural_Map
-{
-    public class MapGenerator : MonoBehaviour
-    {
-        public enum DrawMode
-        {
+namespace Procedural_Map{
+    public class MapGenerator : MonoBehaviour{
+        public enum DrawMode{
             NoiseMap,
             ColorMap,
             Mesh
@@ -39,22 +34,18 @@ namespace Procedural_Map
         private readonly Queue<MapThreadingInfo<MapData>> mapDataThreadingInfoQueue = new();
         private readonly Queue<MapThreadingInfo<MeshData>> meshDataThreadingInfoQueue = new();
 
-        private void OnValidate()
-        {
-            if (octaves < 0)
-            {
+        private void OnValidate(){
+            if (octaves < 0) {
                 octaves = 0;
             }
         }
 
 
-        public void DrawMapInEditor()
-        {
+        public void DrawMapInEditor(){
             MapData mapData = GenerateMapData();
             MapDisplay display = FindObjectOfType<MapDisplay>();
 
-            switch (drawMode)
-            {
+            switch (drawMode) {
                 case DrawMode.ColorMap:
                     display.DrawTexture(TextureGenerator.TextureFromColorMap(mapData.colorMap, mapChunkSize, mapChunkSize));
 
@@ -71,56 +62,44 @@ namespace Procedural_Map
             }
         }
 
-        public void RequestMapData(Action<MapData> callBack)
-        {
-            void ThreadStart()
-            {
+        public void RequestMapData(Action<MapData> callBack){
+            void ThreadStart(){
                 MapDataThread(callBack);
             }
 
             new Thread(ThreadStart).Start();
         }
 
-        void MapDataThread(Action<MapData> callBack)
-        {
+        void MapDataThread(Action<MapData> callBack){
             MapData mapData = GenerateMapData();
-            lock (mapDataThreadingInfoQueue)
-            {
+            lock (mapDataThreadingInfoQueue) {
                 mapDataThreadingInfoQueue.Enqueue(new MapThreadingInfo<MapData>(callBack, mapData));
             }
         }
 
-        public void RequestMeshData(MapData mapData, int lod, Action<MeshData> callback)
-        {
+        public void RequestMeshData(MapData mapData, int lod, Action<MeshData> callback){
             new Thread(() => { MeshDataThread(mapData, lod, callback); }).Start();
         }
 
-        void MeshDataThread(MapData mapData, int lod, Action<MeshData> callback)
-        {
+        void MeshDataThread(MapData mapData, int lod, Action<MeshData> callback){
             MeshData meshData =
                 MeshGenerator.GenerateTerrainMesh(mapData.heightMap, heightMultiplier, meshHeightCurve,
                     lod);
-            lock (meshDataThreadingInfoQueue)
-            {
+            lock (meshDataThreadingInfoQueue) {
                 meshDataThreadingInfoQueue.Enqueue(new MapThreadingInfo<MeshData>(callback, meshData));
             }
         }
 
-        void Update()
-        {
-            if (mapDataThreadingInfoQueue.Count > 0)
-            {
-                for (int i = 0; i < mapDataThreadingInfoQueue.Count; i++)
-                {
+        void Update(){
+            if (mapDataThreadingInfoQueue.Count > 0) {
+                for (int i = 0; i < mapDataThreadingInfoQueue.Count; i++) {
                     MapThreadingInfo<MapData> threadingInfo = mapDataThreadingInfoQueue.Dequeue();
                     threadingInfo.callBack(threadingInfo.parameter);
                 }
             }
 
-            if (meshDataThreadingInfoQueue.Count > 0)
-            {
-                for (int i = 0; i < meshDataThreadingInfoQueue.Count; i++)
-                {
+            if (meshDataThreadingInfoQueue.Count > 0) {
+                for (int i = 0; i < meshDataThreadingInfoQueue.Count; i++) {
                     MapThreadingInfo<MeshData> threadingInfo = meshDataThreadingInfoQueue.Dequeue();
                     threadingInfo.callBack(threadingInfo.parameter);
                 }
@@ -128,20 +107,15 @@ namespace Procedural_Map
         }
 
 
-        MapData GenerateMapData()
-        {
+        MapData GenerateMapData(){    
             var noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, seed, noiseScale, octaves, persistance,
                 lacunarity, offset);
             Color[] colorsMap = new Color[mapChunkSize * mapChunkSize];
-            for (int y = 0; y < mapChunkSize; y++)
-            {
-                for (int x = 0; x < mapChunkSize; x++)
-                {
+            for (int y = 0; y < mapChunkSize; y++) {
+                for (int x = 0; x < mapChunkSize; x++) {        
                     float currentHeight = noiseMap[x, y];
-                    for (int i = 0; i < regions.Length; i++)
-                    {
-                        if (currentHeight <= regions[i].height)
-                        {
+                    for (int i = 0; i < regions.Length; i++) {
+                        if (currentHeight <= regions[i].height) {
                             colorsMap[y * mapChunkSize + x] = regions[i].color;
                             break;
                         }
@@ -152,35 +126,27 @@ namespace Procedural_Map
             return new MapData(noiseMap, colorsMap);
         }
 
-        struct MapThreadingInfo<T>
-        {
+        struct MapThreadingInfo<T>{
             public readonly Action<T> callBack;
             public readonly T parameter;
 
-            public MapThreadingInfo(Action<T> callBack, T parameter)
-            {
+            public MapThreadingInfo(Action<T> callBack, T parameter){
                 this.callBack = callBack;
                 this.parameter = parameter;
             }
         }
 
-
         [Serializable]
-        public struct TerrainType
-        {
+        public struct TerrainType{
             public string name;
             public float height;
             public Color color;
         }
 
-        public struct MapData
-        {
+        public struct MapData{
             public readonly float[,] heightMap;
             public readonly Color[] colorMap;
-
-
-            public MapData(float[,] heightMap, Color[] colorMap)
-            {
+            public MapData(float[,] heightMap, Color[] colorMap){
                 this.heightMap = heightMap;
                 this.colorMap = colorMap;
             }

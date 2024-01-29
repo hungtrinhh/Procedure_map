@@ -713,10 +713,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   detailLevel:
   - lod: 1
-    visibleDtsThreshold: 200
-  - lod: 2
-    visibleDtsThreshold: 300
+    visibleDtsThreshold: 100
   - lod: 3
+    visibleDtsThreshold: 200
+  - lod: 6
     visibleDtsThreshold: 400
   viewer: {fileID: 424854492}
   mapMaterial: {fileID: 2100000, guid: 997ff1e1c895b9c4993a4aeb5037942e, type: 2}
