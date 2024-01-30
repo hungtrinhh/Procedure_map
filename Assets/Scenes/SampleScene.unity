@@ -604,7 +604,7 @@ MonoBehaviour:
   EditorPreviewLevelOfDetail: 1
   drawMode: 2
   noiseScale: 36.89
-  autoUpdate: 1
+  autoUpdate: 0
   octaves: 17
   persistance: 0.5
   lacunarity: 2

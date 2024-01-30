@@ -27,7 +27,7 @@ namespace Procedural_Map{
 
 
         Dictionary<Vector2, TerrainChunk> terrainChunksDictionary = new();
-        List<TerrainChunk> terrainChunksVisibleLastUpdate = new();
+        static List<TerrainChunk> terrainChunksVisibleLastUpdate = new();
 
         void Start(){
             mapGenerator = FindObjectOfType<MapGenerator>();
@@ -62,9 +62,10 @@ namespace Procedural_Map{
                     Vector2 viewChunkCoord = new Vector2(currentChunkCoordX + xOffSet, currentChunkCoordY + yOffSet);
                     if (terrainChunksDictionary.ContainsKey(viewChunkCoord)) {
                         terrainChunksDictionary[viewChunkCoord].UpdateTerrainChunk();
-                        if (terrainChunksDictionary[viewChunkCoord].IsVisible()) {
-                            terrainChunksVisibleLastUpdate.Add(terrainChunksDictionary[viewChunkCoord]);
-                        }
+
+                        // if (terrainChunksDictionary[viewChunkCoord].IsVisible()) {
+                        //     terrainChunksVisibleLastUpdate.Add(terrainChunksDictionary[viewChunkCoord]);
+                        // }
                     }
                     else {
                         terrainChunksDictionary.Add(viewChunkCoord,
@@ -155,6 +156,9 @@ namespace Procedural_Map{
                             lodMesh.RequestMesh(mapData);
                         }
                     }
+                    
+                    terrainChunksVisibleLastUpdate.Add(this);
+                    
                 }
 
                 SetVisible(visible);

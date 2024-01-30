@@ -29,11 +29,9 @@ namespace Procedural_Map{
                         meshData.AddTriangle(vertexIndex, vertexIndex + verticesPerLine + 1, vertexIndex + verticesPerLine);
                         meshData.AddTriangle(vertexIndex + verticesPerLine + 1, vertexIndex, vertexIndex + 1);
                     }
-
                     vertexIndex++;
                 }
             }
-
             return meshData;
         }
     }
